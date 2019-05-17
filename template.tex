@@ -14,24 +14,20 @@
 \usepackage{lipsum}
 \usepackage{todonotes}
 
-\title{Monitoring the Growth of Mangroves using Camera Images}
+\title{Breeze Data Instructions}
 
 
 \author{
-  Q. Xiang\thanks{Use footnote for providing further
+  Y. Zhou\thanks{Use footnote for providing further
     information about author (webpage, alternative
-    address)---\emph{not} for acknowledging funding agencies.} \\
-  Department of Computer Science\\
-  Cranberry-Lemon University\\
-  Pittsburgh, PA 15213 \\
-  \texttt{hippo@cs.cranberry-lemon.edu} \\
+    address)---\emph{not} for acknowledging funding agencies.} \\ Senseable City Laboratory \\
+    Massachusetts Institute of Technology\\ Cambridge, MA, 02138 \\ \& \\
+  Department of Geography and Resource Management\\
+  The Chinese University of Hong Kong\\
+  New Territories, Hong Kong, 999077 \\
+  \texttt{yulun.zhou@link.cuhk.edu.hk} \\}
   %% examples of more authors
-   \And
- Elias D.~Striatum \\
-  Department of Electrical Engineering\\
-  Mount-Sheikh University\\
-  Santa Narimana, Levand \\
-  \texttt{stariate@ee.mount-sheikh.edu} \\
+   
   %% \AND
   %% Coauthor \\
   %% Affiliation \\
@@ -47,13 +43,13 @@
   %% Affiliation \\
   %% Address \\
   %% \texttt{email} \\
-}
+
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-To be filled.
+Documentation of key information to use the organized Breeze dataset. 
 \end{abstract}
 
 
@@ -62,253 +58,224 @@ To be filled.
 
 
 % keywords can be removed
-\keywords{First keyword \and Second keyword \and More}
+
+\tableofcontents
+
+\newpage
+\section{Brief Data Information}
+\subsection{Data Source}
+The Breeze dataset was retrieved by the MIT senseable city laboratory (SCL) from the Run-Keeper company in 2016. The original dataset contains all human trajectories collected from the Breeze app in the city of Boston and San Francisco from Apr.2014 to May.2015.
+
+Please refer to the Supplementary Material of the cognitive load paper for descriptive statistics of the dataset. 
+
+\section{The Organized Dataset - Updated 19/5/17}
+
+\paragraph{Path Types} - The cleaned dataset mostly include 3 types of paths:
+\begin{itemize}
+    \item Raw GPX Paths ($-rawGPX.pk$) - raw paths collected, a list of coordinates gathered from GPX files. 
+    \item Map-matched Paths ($-match.pk$) - map-matched paths using the raw paths and the footpath network. 
+    \item Shortest Distance Paths ($-short.pk$) - shortest distance paths calculated using the same OD pairs from the raw GPX paths and the foot path network. 
+\end{itemize}
+
+\paragraph{Data Cleaning Objectives} 
+\begin{enumerate}
+  \item Map-match the raw GPS trajectories to the network. 
+  \item Remove paths irrelevant to the proposed analysis. (Running paths/Hang-arounds)
+\end{enumerate}
+
+\paragraph{Data Loss} - The cleaned dataset has inevitably experienced significant data loss through the entire cleaning process. Major sources of data loss include map-matching failures, too short paths, and running paths, which are irrelevant to the proposed analysis. Taken the loss, we still get around 40\% of all data, the number of which is still above 10K. 
+
+Main sources of data loss include:
+\begin{enumerate}
+  \item (Major) Map-Matching Failures (failure and poor matches).
+  \item Irrelevant Paths. 
+        \begin{itemize}
+            \item (Major) Too Short Paths. 
+            \item Hang-around Paths
+            \item Running Paths
+            \item Too Long Paths
+        \end{itemize}
+\end{enumerate}
+
+More details of the data cleaning procedure will be introduced in the next section.
+
+\paragraph{Representation of Paths} - The original paths came as a list of coordinates. For the convenience of calculation, we proposed other representations as well:
+\begin{itemize}
+    \item List of Graph Node Indices
+        \begin{itemize}
+            \item Original Graph
+            \item Simplified Graph
+        \end{itemize}
+    \item NOTICE: The origin and destination of paths could be coordinates since they are not close (defined as direct link distance<30m) to any nodes in the graph
+\end{itemize}
 
 
-\section{Introduction}
-
-Mangrove is a specific type of tropic or subtropic tree species which has strong
-reproductive adaptations that allows them to colonize and develop in saline, hypoxic
-environments.Vegetation phenology has been a focus of attention in recent years due
-to a measurable link between biological events and climate.The earth is expected to
-warm up by 5\°C on average in the next 100 years.Around 60\% of the increase was
-due to carbon emissions.Mangrove takes only 0.3\% of the earth’s surface.But if there
-were no mangrove forests, the CO2 concentration will be 2.5 times higher than it
-is.As a result, monitoring mangrove phenology and find the pattern in its growing
-cycle play crucial roles in optimizing mangrove’s carbon reducing function.The
-greenness of vegetation in a certain area is a sound indicator of the vegetation
-phenology.
-
-Historically, vegetation phenology was based on field records of key biological
-events such as budburst, flowering, seed set and leaf senescence (Fitter and Fitter,
-2002),which can not generate accurate data for computing. Landsat data, or remote
-sensing measurements, are another source which can produce specific images of the
-forests from the space.They can strongly indicate daily or annual GPP in small and
-homogeneous regions.However they are not suitable for large areas and are easily
-disturbed by bad or cloudy weathers.
-
-Recently, a network of fine-resolution digital cameras installed in the field known as
-“phenocams”, emerged as a new method to monitor vegetation phenology
-(Richardson et al., 2007). While this method is limited by its relatively small spatial
-extent across the globe and demanding location of the cameras, it largely reduces the
-subjectivity of human observations.What’s more, digital camera method can be used
-in other researches and save a lot of money if the indices are representative for one
-type of environment.
-
-This study proposes the analysis of the mangrove status against field measurements
-of carbon flux using digital repeat photography.
 
 
-\section{Methods and Materials}
-\label{sec:headings}
+\section{Data Cleaning Details - Updated 19/5/17}
+\subsection{The Overall Procedure}
+\begin{enumerate}
+    \item Remove Running Paths
 
-\subsection{Experimental Design}
+    Understandably, we excluded all running paths using the information provided by the Breeze app. 
+
+    \item Map-Matching.
+    A HMM-based map-matching algorithm was applied to raw-GPX trajetories using the GraphHoper API and walk paths provided by Open Street Map.
+    
+    * Coordinates in the map-matched trajectories were linked to vertices in the walking graph extracted from GraphHoper with an error tolerance of 5m. 
+    
+    \paragraph{Map-Matching Problems}
+    \begin{enumerate}
+        \item Map-Matching Failures - About 10k paths failed in the map-matching, possibly due to missing links in the walking network extracted from the Open Street Map. 
+            
+        \item The Origin-Destination Displacement Problem
+            \begin{itemize}
+                \item We observed a severe displacement between the origin and destination in the map-matched trajectories as direct outputs from the GraphHoper API. The displacement can be as large as hundreds of meters, which significantly changed the geometry of human paths. More severely, the differences in OD locations lead to very different shortest paths and so make the following comparison between human paths and shortest paths unfair. 
+                
+                \item Solution: The OD Trim Algorithm.
+                
+                We proposed a quick fix to the OD Displacement problems. By trimming the extra segments in the map-matched paths around the origin and destination of the raw paths, we intend to fix the majority of the problems. 
+                
+                \item Data Loss:
+                    \begin{itemize}
+                        \item Off-track paths: Do>150 (k0) | Dd>150 (k1).
+                        \item Less than 2 Nodes after OD trimming (k2).  
+                    \end{itemize}
+            \end{itemize}    
+            
+            \item Poor Matches
+            \begin{itemize}
+                \item Some of the paths were map-matched poorly to the network, either due to high-density and confusing candidate links in the network or due to large GPS jitters in certain areas of the city especially those with high-rise buildings affecting GPS signals.
+            
+                \item We measured the Hausdorff distance ($HD$) between the raw path and map-matched path as an indicator of map-matching quality. We took the minimum value of Hausdorff distance in both directions. 
+            
+                \item Data Loss - We exluded all paths having $HD>60m$ as poor matches. The threshold was determined by repeated visualization and comparison. This is the major source of data loss in the entire data cleaning process (about 60k in Boston) mainly due to there being many off-the-network paths in the original dataset, including many indoor movements. These off-the-network paths should be excluded. Also, other poorly-matched paths should be excluded since the proposed analysis is about detailed geometric properties in human paths, such as turns, which is very sensitive to very minor changes in the paths.   
+        
+            \end{itemize}
+        \end{enumerate}
+        
+    \item Too Short Paths - We excluded all paths having their shortest network distance shorter than 150m.
+    
+    \item Too Long Paths - We excluded all paths having their shortest network distances longer than 8000m due to small sample size. 
+
+    \item Loops - We excluded all paths containing repeated nodes.
+    
+    \item Hang-around Paths
+    
+    \item Other Data Cleaning Steps
+        \begin{itemize}
+            \item Remove consecutive duplicates
+        \end{itemize}
+\end{enumerate}
 
 
-\subsection{Data}
-On the mangrove forest observation tower, a digital camera was installed in a fixed position, leveled with the horizon, with a view across the top of the canopy. This TLCAM PRO camera provided JPG images at 30-min intervals for 24h per day. Each image has three color channels of 8-bit RGB color information and for each channel digital numbers (DN) ranging from 0 to 255. Cameras were operated in the automatic aperture and exposure mode. The timestamps of all images were extracted from the Exif information stored along with the images. The Exif data stores the basic information about the image, including image gamut space, capture time and save time.We save all the capture times to a timestamp dictionary for fast query. In total, we captured 1045 images in the period from Feburary,2017 and July,2017.\todo{Update Later} { \color{red}{Figure 1 shows two image examples and the extracted timestamps.}}
+\subsection{The OD Displacement Problem}
+
+The problem was caused by the way the HMM-based map-matching algorithm, in which the closest edge in graph to the O and D was first identified as the start of the searching process for the map-matched path. In doing so, such a problem can be caused. Our practice shows that this problem happens in most of the trajectories and cannot be ignored since it affects the geometry and the related turning properties significantly.
+            
++ Distribution of the OD displacements.
+
++ Examples 
+
+Through a large number of visualizations and comparison, we classified all paths into two sub-categories, totally-off-track paths and slightly-off-track paths. The categorization is based on the direct great circle distance between the O in the raw and map-matched paths (Do) and the corresponding distance between Ds (Dd).
+
+Paths having Do>=t 
+
+\paragraph{Calculate OD Displacement.} First, we calculate the Origin Destination displacement of all paths that are successfully map-matched ($codes/e2-1-calc-od-displacement.ipynb$).  
+
+Algorithm Logic:
+\begin{enumerate}
+  \item Read all raw paths (R) and map-matched paths (M).
+  \item Get O and D of R (Ro, Rd) and M (Mo, Md).
+  \item Calculate the great circle distances Do = great-circle($R_o$, $M_o$) and Dd = great-circle(Rd, Md).
+\end{enumerate}
+
+\paragraph{Analyze Do and Dd} We first checked the distribution of Do and Dd, both follow heavy-tailed distribution and could be as large as thousands of meters.  
+
+By visualizing a large number of paths having different Do and Dd values, we found that paths having Do and Dd larger than a threshold t were Off-Track Paths, usually indoors or within a large open space. The Off-Track paths are beyond the scope of this study and so should be excluded. 
+
+Paths with Do and Dd smaller than the threshold t were On-Track paths subject to the problem of having extra segments at the start or end of the paths, which could be corrected by applying an OD Trim Algorithm (explained later). 
+
+To identify the appropriate t, we visualized 50-100 paths respectively for t=50, t=100, t=150, and t=200, and selected t=150 as the threshold values. 
+
+\paragraph{Off-Track Paths}
+We removed all Off-Track Paths having Do>t or Dd>t. 
+
+\paragraph{On-Track Paths and OD Trim Algorithm}
+We identified paths having both Do<=t ($data/*-clean-k0.pk$)  and Dd<=t (*-clean-k1.pk) as On-Track Paths and applied the OD trim algorithm to all On-Track Paths. 
+
+OD Trim Algorithm (codes/s2-2-OD-Trim.ipynb)
+
+
+A small proportion of On-Track paths shrank to 0 or 1 nodes after applying the OD Trim algorithm. We excluded these paths. All remaining paths are stored in $data/*-clean-k012-*.pk$.
+
+
+\subsection{Map-Matching Quality Check}
+In the previous check, we calculate the hausdorff distance between the raw paths and the map-matched paths. However, the calculated distance were affected by the OD displacement problem. Now as the OD disaplcement problem is fixed. We re-calculate the hausdorff distance between raw GPX and the OD-Trimed paths as a indicator for map-matching quality. 
+
+
+\subsection{Exclude Paths with too short OD Direct Link}
+During the data cleaning process, we observed many paths having loops which are not suitable for our proposed comparison between human paths and shortest paths since the shortest paths will be very short for loop and so making an unfair comparison. Paths having loops need to be excluded. 
+
+Paths having loops are usually identified with a short direct distance between OD. So we first calculate the direct distance between OD ($D_od$) for all paths that are successfully map-matched and then exclude all paths having $D_od$ < 150m. The threshold of 150m was determined by repeated experiments and visualizations.   
+
 
 \begin{figure}
   \centering
-  \includegraphics[width=1\textwidth]{pictures/WSCT4349.jpg}
-  \includegraphics[width=1\textwidth]{pictures/w.jpg}
-  \caption{Image Examples}
+  \includegraphics[width=.6\textwidth]{figures/ShortODDirectLink.PNG}
+  \caption{Paths with a very short OD Direct Link. The red line indicates the raw GPS path while the blue line indicates the map-matched path after OD trim.}
   \label{fig:fig1}
 \end{figure}
-++ Study Area
 
 
-Search for "Latex, formula format" for more information
 
-\subsubsection{Data Quality Control}
-\paragraph{Quality control before and during implementation.}
-We ensured that all the images were captured by the same camera on the observation tower.The camera's position and direction were supposed to remain constant all the time during the whole period.We turned automatic aperture and exposure mode on in order to guarantee that among all the images, the illumination conditions stay consistent.
 
 
-\paragraph{Camera Shifts.}Time series were first visually inspected for camera shifts and the related changes in field of view (FOV). The FOV remained largely unchanged. However, some larger shifts in the FOV were observed as the positioning of the camera changed a few times throughout the study. 
 
-\paragraph{Poor Illumination.}We also observed images with unusual illumination which may affect the calculation of vegetation indices. For example, images before sun rise and after sun set had inadequate illumination and so can hardly be used for monitoring the greenness. Also, images around the sunrise and sunset had significant different hues. 
+\subsection{Other approaches that can be applied}
 
-To wipe out the bad images significantly affected by camera shifting or unusual illumination, we calculated the percentage of green color in each image as an indicator for filtering and calibration. The percentage of green color was computed as the percentage of image pixels where the {DN_g}  was smaller than 175. After applying the greenness proportion calculation to one month’s images, we found that the proportions are segmented to two parts. Irregular images suffering from bad illumination or camera shifting problems had values being extremely close to 1, while the normal ones were normally distributed around 0.6. Therefore, we selected a benchmark of 0.75 to sift out the normal images to be used in further calculations (++ histogram in Supporting Information). Using this filter, we identified and removed XXX images  from the original dataset. Rechecking the identified bad images, we found that they are all ill-illuminated and had a time span from 6pm to the second day’s 6am. See Figure \ref{fig:fig1}.
+\paragraph{Time Smoothing to the raw trajectory}
+Eliminate Jumps, Improve Map-Matching Quality
 
+\paragraph{Time Sparsing to the raw trajectory}
+According to the map-matching paper. 
 
-Moreover, at the bottom of each image, a black bar is attached to display the time, temperature and equipment manufactory, which largely disturbed our calculation of vegetation indices. Noting these noises, images were first cropped to exclude the bars. The way to solve the field of view shifts is discussed in later sections. All image processing were conducted using Python 3.6. 
+\paragraph{Jumps/Over-Speed Filtering in raw trajectories}
+Average Speed and Temporal Speed 
 
 
-\subsection{Calculation of Vegetation Indices}
-To quantify canopy greenness, we calculated the green chromatic coordinate (GCC), which is widely used to monitor canopy development and is strongly related to GPP (xxxx cite), can be denoted as follows,
 
-\begin{equation}
-GCC = \frac{DN_g}{{DN_r + DN_g + DN_b}}
-\end{equation}
 
-where the subscripts R, G, and B indicate the red, green, and blue channels, respectively. 
-We also computed another vegetation index, the excess green (EXGCC) index, which can be denoted as follows, 
+\section{Calculation of the shortest path for ODs not matched to graph nodes}
+The origin and destination of map-matched paths were biased due to the OD displacement problem caused by the map-matching algorithm, so we need to re-calculate the shortest paths using corrected O and D. During the calculation, we also need a special mechanism to deal with the OD on link problem, that is, OD can not be aggregated to intersections. 
 
-\begin{equation}
-EXGCC=2DN(g)-(DN(r)+DN(b)) 
-\end{equation}
+\paragraph{Input: Network}
+We have two options, one is to use the network we extracted from Graphhoper map-matching algorithm, and the other is to use the simplified one from Networkx. Since the map-matched algorithm was conducted based on the previous one, we also use the previous one ($graph-original['sub']$) for calculating the shortest path.
 
-EXGCC can be less noisy than GCC in some ecosystems, notably in conifer canopies (xxx cite), although GCC is generally more effective than EXGCC in suppressing the effects of changes in scene illumination (xxx cite). Due to the formulas, all the GCCs which are larger than 1 is dropped. All the EXGCCs which are greater than 200 are modified to 200. 
+* Whether to simply it using NetworkX
 
+\paragraph{Input: OD}
+We only process the paths having either O or D apart from intersections. By apart, we mean more than 30 meters away. We get XX and XX such paths in BOS and SF. 
 
-\subsection{Time-Series Smoothing}
-Knowing the vegetation indices are sensitive to illumination conditions, we extracted the images ranging from 10am to 2pm during the day to avoid hue changes due to sunset and to have the most stable illumination. We applied a moving window smoothing to the extracted VIs to highlight the underlying monthly and seasonal change patterns by removing several extremities and unexpected fluctuations that appeared in the extracted time series of GCC and EXGCC caused by factors such as slight illumination disturbance, droplets on lens, and cloud. Several smoothing methods including the mean filter, median filter, and 90\% percentile filter were applied for comparison. Following the practice of xxxx (cite), the window size was selected as 3 days. 
+\paragraph{Algorithm for OD apart from intersections}
+(If O of path P is not near intersection)
+\begin{enumerate}
+    \item Get the neighbor p to O on P
+    \item Get all links L connected to p in the graph G
+    \item Find l in L that is closest to p (perpendicular distance)
+    \item Get the two nodes of l, namely $O_0$ and $O1$
+    (Check if OD are closest to the same link, if so, put on side.)
+    \item (If D is not near intersection) Repeat the process and get $D_0$ and $D_1$
+    \item Calculate all shortest paths between all combinations of Os and Ds
+    \item Calculate the distances of all calculated shortest distance paths and add the distance between real O and D and O's 
+    \item Get the path between OD having the shortest distance as the shortest path.  
+\end{enumerate}
 
 
-\subsection{Validation Methods}
-We validate the GCC values extracted (GCCe) from camera photos with field-measurements (GCCf) using the Pearson Correlation Coefficient, and RMSE.    
 
-Pearson Correlation Coefficient: np.corrcoef()
-RMSE: 1/ establish a linear transformation from GCCe to GCCf. 2/ estimate the RMSE between GCCe-estimate and GCCf. y = kx + b, RMSE = sigma(yi - yi-hat)**2/N
 
-Exposure Time.  - RMSE 1/ establish a model to predict GCCf with GCCe and Exposure Time. 2/Measure the R2 and RMSE. 
 
 
-\subsubsection{}
-
-
-
-\section{Results} \todo{Finish Section 3.1}
-
-% Figure Requirements: DPI=300
-
-
-
-
-\subsection{Vegetation Indices of Mangroves Extracted from Camera Images}
-We calculated the GCC and ExGCC of mangroves for the entire month of July, 2017. Figure \ref{fig:fig1} shows the extracted GCC of mangroves in July,2017 before and after three day mean smoothing.
-
-In summer / winter 
-
-+ Time Series - not smoothed 
-
-We applied three different smoothing method to the extracted time-series of vegetation indices. After analyzing the graphs of three day mean smoothing and three day median smoothing of GCC and ExGCC, We observed that although larger decreases appear on about July 7th and 13th, which were due to rainy weather, the overall curve was stable and had a trend of gradually increasing, as was displayed in Figure \ref{fig:fig1}.
-
-
-Recognizing the pattern in the VIs series in July, we further generated similar graphs for a entire month of January, 2017, for comparison.
-Figure \ref{fig:fig2} shows the extracted GCC of mangroves in July,2017 before and after three day mean smoothing.A large gap between January 14th and January 18th was due to a lost of raw images even before image cleaning.The significant drop was still owing to poor illumination.
-
-
-When scanning all the images for visible stains, we found that they had different exposure times, which might lead to relatively great or poor illumination conditions.We therefore extracted the exposure times from images' exif datas and compute their correlation  coefficients with GCCs and ExGCCs.Fortunately, we got quite high correlations, about 0.7, between exposure times and VIs in July, which mean we can use exposure times to improve the prediction performances of GCCs and ExGCCs.
-\begin{figure}
-  \centering
-  \includegraphics[width=1\textwidth]{pictures/meanGCC.png}
-  \caption{Extracted GCC of mangroves in July,2018 before and after three day mean smoothing.}
-  \label{fig:fig1}
-\end{figure}
-
-\begin{figure}
-  \centering
-  \includegraphics[width=1\textwidth]{pictures/JanmeanGCC.png}
-  \caption{Extracted GCC of mangroves in January,2017 before and after three day mean smoothing.}
-  \label{fig:fig2}
-\end{figure}
-
-
-\subsection{Validation of the VIs extracted from Camera Photos}
-
-summer 
-
-winter
-
-
-
-
-\section{Discussions} \todo{Finish Section 4.1-4.3}
-\subsection{The Pros and Cons of using camera photos to monitor the growth of mangroves}
-Digital cameras can produce accurate datas if the VIs can be integrated with other techniques like eddy covariance datas(cite   ).After Comparing it with other methods like landsat datas, we found that we can detect the potential drawbacks of the clear digital images more swiftly and directly and corect them as soon as possible.Using digital images is also a economic research method that it can be used in other scientific cases and save a lot of money if the vegetation indices are representative for one type of environment.
-
-However, the restrictions of digital photos can directly influence the outcome of the research.The location of the cameras should be fixed for such a long time span that it is difficult to ensure the same field of view.
-According to our experiment, the VIs and GPP can be not so synchronous due to the change in the illumination condition, the hue of the images and the complexity of the region. 
-
-
-
-Uniqueness of Mangroves 
-
-\subsection{The Seasonal Effects}
-
-
-
-\subsection{Other Potential Factors that affect the reliability}
-\subsubsection{Illumination}
-- We observed that the extracted VIs correlate significantly with the illumination conditions. The VIs increases with stronger incoming daylight and decreases with weaker daylight. The change caused by the difference in illumination conditions could even be more dramatic than that caused by the seasonal effects. In this paper, we adopted the method from XXX (2016) and only extracted VIs from images captured from 10am to 2pm when the daylight is relatively stable. Results show that this method helps control the effects of illumination change. 
-
-
-\subsubsection{Weather effects}
-On cloudy days, the gloomy weather largely weakened the illumination due to less incoming sun light.Moreover, the hues displayed on the images were shifted from bright colors to dim and dark ones.These resulted in consequences that some of the days generated extremely low VIs, which had no relationships with the conditions of the mangrove forests.The same situation can be applied to rainy days, which were usually accompanied with clouds.It was noteworthy that on rainy days, large  rain droplets may descent on the lens of the cameras.These stains were also potential causes of sudden decreases in VIs.
-
-
-\subsubsection{Different smoothing methods}
-The moving mean smoothing method generates similar reuslts compared with the moving median smoothing method, while the moving 90\% quantile smoothing method could minimize the fluctuations caused by weather changes and other potential factors.The moving mean smoothing method can be affected by extreme values, which appear relatively frequently in our research.The moving 90\% quantile smoothing method may be inaccurate because it only displays the pattern of datas with large values and so that ignores comparatively small ones.++++ 
-
-
-
-\subsection{Other Results for Reference}
-\subsubsection{Get Mean First vs. Our Method}
-
-
-
-\section{Conclusion}
-
-
-
-\bibliographystyle{unsrt}  
-%\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
-%%% and comment out the ``thebibliography'' section.
-
-
-%%% Comment out this section when you \bibliography{references} is enabled.
-\begin{thebibliography}{1}
-
-\bibitem{kour2014real}
-George Kour and Raid Saabne.
-\newblock Real-time segmentation of on-line handwritten arabic script.
-\newblock In {\em Frontiers in Handwriting Recognition (ICFHR), 2014 14th
-  International Conference on}, pages 417--422. IEEE, 2014.
-
-\bibitem{kour2014fast}
-George Kour and Raid Saabne.
-\newblock Fast classification of handwritten on-line arabic characters.
-\newblock In {\em Soft Computing and Pattern Recognition (SoCPaR), 2014 6th
-  International Conference of}, pages 312--318. IEEE, 2014.
-
-\bibitem{hadash2018estimate}
-Guy Hadash, Einat Kermany, Boaz Carmeli, Ofer Lavi, George Kour, and Alon
-  Jacovi.
-\newblock Estimate and replace: A novel approach to integrating deep neural
-  networks with existing applications.
-\newblock {\em arXiv preprint arXiv:1804.09028}, 2018.
-
-\end{thebibliography}
-
-
-\section{Lecture Notes}
-
-\subsection{May. 4th}
-1. [Completed] Compare the get mean first method with the method we used.
-
-We found a minor technical difference between  the extraction method of GCC proposed in existing literature and the method we are using. The difference is that in existing literature GCC was calculated using the averaged grey-level values in the Green, Blue and Red bands, while in our method, we calculate GCC for each pixel based on the RGB value for each pixel first and then average the GCC for each image.
-
-We compared extracted GCC for both methods. The GCC values calculated using our method is slightly larger with a very similar trend. We observed that the GCC extracted using our method has slightly larger variance. However, the advant   age of our method is that for each image we get a distribution of GCC. So it depends on the needs of follow-up studies on the technical procedures.  
-
-+ Comparison Figure
-
-
-2. Next Steps
-
-2.1 Complete GCC extraction for Feb., 2017.
-Outs: 1 .pk file.  2. Curve - before and after smoothing
-
-2.2 Validate the results in Feb.
-
-2.3 Validation results with Exposure Time.  
-
-
-
-
-
-4. Available Time: AP Exams: May 6/14/15
 
 
 \end{document}
